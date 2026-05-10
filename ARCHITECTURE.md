@@ -208,13 +208,16 @@ class HookManager
 
 ## 4. Content Types & Field Builder
 
+All content (posts, pages, recipes, products, …) is stored in a single `content_entries` table differentiated by `content_type_id`. Posts and Pages are simply built-in content types — there is no separate `posts` table.
+
 ### Schema
 
 ```sql
 content_types
-├── id, name, slug, label, label_plural
-├── icon, supports_seo, supports_translations
+├── id, name, slug, label, label_plural, description
+├── icon, supports_seo, supports_translations, supports_revisions, supports_layout
 ├── public, hierarchical, has_archive
+├── settings (JSON)
 └── timestamps
 
 content_type_fields
@@ -227,19 +230,40 @@ content_type_fields
 
 content_entries
 ├── id, content_type_id, author_id, parent_id
-├── slug, status, published_at
-├── data (JSON)
+├── slug (unique per content_type), status, published_at
+├── title, excerpt                    -- denormalized for indexing/sort/search
+├── featured_image_id                 -- FK → media
+├── layout (JSON)                     -- Page Builder block tree (nullable)
+├── data (JSON)                       -- custom field values keyed by field name
+├── views_count                       -- denormalized counter
 └── timestamps
 
 content_entry_translations
 ├── id, content_entry_id, locale
-├── data (JSON)
+├── title, excerpt                    -- per-locale denormalized
+├── layout (JSON)                     -- per-locale Page Builder layout (nullable)
+├── data (JSON)                       -- per-locale field values
+└── timestamps
+
+content_entry_revisions
+├── id, content_entry_id, revision_number
+├── snapshot (JSON)                   -- full state including all locales
+├── author_id, change_summary
 └── timestamps
 ```
 
-### Default Content Type: `post`
+**Notes on the schema:**
+- `title`, `excerpt`, `featured_image_id` are denormalized at the entry level for performant queries (search, sort, listings). They mirror values in `data` for the canonical "title" / "excerpt" / "featured_image" fields.
+- `layout` is a separate column rather than a key in `data` because it has different update patterns and is inspected by the renderer independently of fields.
+- Translations duplicate `title`, `excerpt`, `layout`, `data` per locale.
+- Revisions snapshot the **entire** entry (all locales) per revision, not per-locale, to keep history compact and make compare-and-restore deterministic.
 
-Built-in. Provides standard blog post functionality. Other types added via admin UI.
+### Default Content Types
+
+- **`post`** — standard blog post (built-in).
+- **`page`** — static pages like About, Contact (built-in).
+
+Other types are added via admin UI without code.
 
 ### Field Types (15)
 
@@ -363,7 +387,7 @@ class HeadingBlock implements BlockContract
 
 ### Storage
 
-Page Builder layouts stored as JSON in the post's `layout` column:
+Page Builder layouts are stored in the `content_entries.layout` column (JSON) — see Section 4 for the schema. Multilingual sites store per-locale layouts in `content_entry_translations.layout`.
 
 ```json
 {
@@ -382,9 +406,22 @@ Page Builder layouts stored as JSON in the post's `layout` column:
 }
 ```
 
+### Theme + Page Builder: Rendering Responsibility
+
+The **theme provides the chrome** (master layout, header, footer, sidebar). The **Page Builder fills the main content area**. The two coordinate as follows when rendering an entry:
+
+1. The active theme's template (e.g., `themes/active/views/post.blade.php`) is selected via the Template Hierarchy.
+2. Inside the template, the content slot calls `{{ $entry->renderContent() }}`.
+3. `renderContent()` checks `entry.layout`:
+   - **If `layout` is non-empty:** the Page Builder `Renderer` walks the block tree and emits HTML.
+   - **If `layout` is null** (e.g., legacy posts, imported content, simple Markdown drafts): the renderer falls back to the entry's primary content field (typically the `content` rich-text field in `data`), rendered through the standard rich-text → HTML pipeline.
+4. Theme styles (Tailwind + custom CSS) wrap the rendered content.
+
+This means **themes and the Page Builder do not conflict** — the theme owns layout chrome; the Page Builder owns content blocks; legacy/imported content keeps working without a layout.
+
 ### Theme Builder
 
-Special variant of Page Builder for header/footer/archive layouts. Stored in `theme_layouts` table.
+A special variant of the Page Builder for header / footer / archive layouts. Stored in a `theme_layouts` table (one row per theme + layout type, with conditional display rules in JSON).
 
 ---
 
@@ -444,6 +481,24 @@ plugins/
 4. Registers `service_provider` with Laravel container.
 5. Plugin's `boot()` runs.
 6. Migrations run automatically on first activation.
+
+### Plugin Updates and Migrations
+
+- A plugin's `composer.json` declares its version (semver).
+- On update from v1.x → v2.0 (major bump), the `PluginManager` checks for breaking changes by reading a `migrations/` directory inside the plugin.
+- The plugin can ship `breaking-v2.php` migrations that run **before** activation completes.
+- If breaking migrations fail, the plugin is rolled back to the previous version automatically.
+
+### Plugin Marketplace API
+
+The in-admin marketplace browser (Phase 4) fetches listings from `marketplace.derablog.com` (a separate read-only API). The marketplace API:
+
+- Returns a paginated list of plugins and themes (free + premium).
+- Provides metadata: name, description, version, author, screenshots, ratings, requirements.
+- Listings are cached locally for 24 hours so the UI works offline.
+- Premium add-on download URLs are gated by license-key validation against `license.derablog.com`.
+
+This API is hosted by Derabia.com and is **not** required for DeraBlog to function — only for the in-admin marketplace browser. Site operators can install plugins/themes manually via ZIP upload at any time without contacting the marketplace.
 
 ---
 
@@ -653,6 +708,21 @@ Shipped with the Core:
 - "Email me on new comment"
 - "Auto-spam filter via AI"
 
+### Execution Model
+
+Automation flows run on Laravel's queue (Redis-backed), not synchronously:
+
+1. A trigger fires (e.g., `post.published` action).
+2. The `FlowEngine` enqueues a job per matching active flow.
+3. The job walks the flow's nodes one-by-one.
+4. **Wait/Delay nodes** re-enqueue the job with a delay (`->delay(now()->addDays(N))`); execution resumes after the delay.
+5. **Loop nodes** spawn a job per iteration.
+6. **Action nodes** invoke the registered Action class.
+7. Every node's input/output is recorded in `automation_executions` (with status: pending, running, succeeded, failed, retrying).
+8. Failed actions retry up to 3 times with exponential backoff; final failures are sent to a dead-letter queue and surfaced in the admin.
+
+This async, queue-based execution is essential — without it, delays would block requests and webhooks could time out.
+
 ---
 
 ## 11. License Server (Premium Themes)
@@ -700,7 +770,78 @@ Premium themes ship as plain code (Blade + PHP + assets). Protection via:
 
 ---
 
-## 12. SEO Subsystem
+## 12. Authentication & Sessions
+
+DeraBlog uses **two authentication channels** backed by the same `User` model:
+
+### Channel 1 — Web / Admin (Session-based)
+
+- Used by: the public site, the Filament admin panel, all Livewire components.
+- Backed by: Laravel's built-in session driver (Redis store).
+- CSRF protected by default.
+- This is the **primary** auth path for human users.
+
+### Channel 2 — REST API (Token-based)
+
+- Used by: external integrations, future mobile apps, plugin-to-server API calls, license server validation.
+- Backed by: **Laravel Sanctum** (personal access tokens).
+- Tokens are scoped (e.g., `posts.read`, `media.write`, `admin.*`).
+- Expiration configurable per token.
+
+### Why both?
+
+Livewire requires session-based auth (cookies). API consumers need stateless tokens. Sanctum supports both modes (the "SPA cookie" mode bridges the two when needed). For DeraBlog v1.0:
+
+- **Web users** → session auth, no Sanctum tokens.
+- **API consumers** → Sanctum tokens issued from admin → user profile → API tokens.
+- **Plugins** running in-process → use the current authenticated session/user (no separate auth).
+
+### 2FA flow
+
+- 2FA (TOTP) is enabled per-user from their profile.
+- Once enabled, login requires: email + password → TOTP code.
+- Backup codes (10 single-use codes) are issued for account recovery.
+- 2FA can be enforced for admins via a setting.
+
+### Permissions check
+
+After authentication, the request flows through `spatie/laravel-permission`'s middleware. Permissions are checked granularly per route or per Filament resource (e.g., `posts.edit_own`).
+
+---
+
+## 13. Real-time Architecture (Reverb)
+
+Real-time features are delivered by **Laravel Reverb** (a first-party, native WebSocket server) with **Laravel Echo** on the client side via Alpine. Reverb is profile-gated in production: site operators who don't need real-time can leave it disabled to save resources.
+
+### Features that use Reverb
+
+| Feature | Channel pattern | What's broadcast |
+|---|---|---|
+| Real-time visitor count | `presence-analytics` | Online visitor count updates |
+| Comment notifications | `private-user.{id}` | "New reply to your comment" |
+| Background job progress | `private-user.{id}` | Import / backup / large bulk operation progress |
+| Automation execution status | `private-user.{id}` | Flow execution started / completed / failed |
+| Editor presence (future) | `presence-entry.{id}` | Who else is editing this post (post-v1.0) |
+
+### Why Reverb (and not a third-party service)
+
+- Native to Laravel ecosystem (zero extra config).
+- No external service dependency (no Pusher account, no $-per-message fees).
+- Self-hosted and privacy-friendly.
+- Compatible with Laravel Echo client API.
+- Can be turned off entirely; the rest of the app works without real-time.
+
+### Without Reverb
+
+If a site operator disables Reverb, the affected features degrade gracefully:
+- Real-time visitor count → polled every 30s instead.
+- Comment notifications → email only.
+- Background job progress → polled via Livewire on the operator's status page.
+- Automation status → batch-summarized in the activity log.
+
+---
+
+## 14. SEO Subsystem
 
 ### Schema
 
@@ -749,7 +890,7 @@ Returns score + actionable suggestions, displayed as a Livewire widget in the po
 
 ---
 
-## 13. i18n Strategy
+## 15. i18n Strategy
 
 - **Default locale:** English (`en`)
 - **Supported locales:** Configurable. RTL for Arabic, Hebrew, Persian.
@@ -764,7 +905,7 @@ Returns score + actionable suggestions, displayed as a Livewire widget in the po
 
 ---
 
-## 14. Caching Strategy
+## 16. Caching Strategy
 
 | Layer | Tool | TTL |
 |---|---|---|
@@ -783,7 +924,7 @@ Returns score + actionable suggestions, displayed as a Livewire widget in the po
 
 ---
 
-## 15. Security
+## 17. Security
 
 - **CSRF:** Laravel default + Sanctum for API.
 - **XSS:** Blade auto-escape + HTMLPurifier wrapper for TipTap output.
@@ -801,7 +942,7 @@ Returns score + actionable suggestions, displayed as a Livewire widget in the po
 
 ---
 
-## 16. Deployment
+## 18. Deployment
 
 ### One-line install on fresh VPS
 
@@ -832,7 +973,7 @@ The script:
 
 ---
 
-## 17. Monitoring & Observability
+## 19. Monitoring & Observability
 
 - **Errors:** Sentry (free tier).
 - **Logs:** Laravel logs to file. Optional: ship to Logtail/Better Stack.
@@ -844,7 +985,7 @@ The script:
 
 ---
 
-## 18. Decisions Deferred to Post-v1.0
+## 20. Decisions Deferred to Post-v1.0
 
 - E-commerce (community plugin or v1.1)
 - Multisite (Enterprise plugin, Year 2)

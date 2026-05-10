@@ -176,7 +176,8 @@ DeraBlog uses a **dual-license model**:
 |---|---|
 | **No revenue with Open Core MIT** | Premium themes provide visual/design value justifying cost; Year 1 is adoption-focused; Cloud + Enterprise are real revenue sources from Year 2+ |
 | **Competition from established CMS platforms** | Position for greenfield projects; built-in importer reduces migration friction; target underserved niches (RTL languages, agencies, privacy-conscious users) |
-| **Solo dev burnout / scope creep** | Strict 24-week MVP; firm Phase boundaries; resist scope creep; document everything |
+| **Solo dev burnout / scope creep** | Strict 24-week MVP; firm Phase boundaries; resist scope creep; document everything; published priority list (see `PLAN.md` Section 6) for what slips first if velocity falls short |
+| **Aggressive Phase 1 / Phase 4 scope** | ~18 epics packed into Phase 1 (Weeks 1–6); 8 heavy epics in Phase 4 including AI, automation, premium themes; published "scope realism" note in `PLAN.md` Section 6 names the slip-priority order so the v1.0 target stays achievable even if some non-core features defer to v1.1 |
 | **Stack lock-in to Laravel** | Laravel is mature and growing; the TALL Stack is officially supported and well-resourced |
 | **AI provider changes pricing/API** | Four-provider strategy (OpenAI, Deepseek, Gemini, OpenRouter) hedges against any single provider; BYOK means we don't pay for usage |
 | **License key system gets cracked** | Acceptable risk — most paying customers are honest; legal action against confirmed mass violators; key revocation supported |

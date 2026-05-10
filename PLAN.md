@@ -81,7 +81,7 @@ Posts/Pages CRUD, Categories & Tags, Custom Post Types, Custom Fields (15 types)
 Registration, Email Verification, Password Reset, **2FA (TOTP)**, 6 Default Roles, Custom Roles, Granular Permissions (40+), User Profiles, Strong Password Enforcement, Session Management.
 
 ### 4.3 SEO Suite (15)
-Meta tags (title, description, OpenGraph, Twitter Cards), XML Sitemap, robots.txt management, 301/302 Redirects Manager, Full JSON-LD (Article, FAQ, Recipe, Product, How-to, Review, Event, Organization, BreadcrumbList), Real-time Content Analyzer, Schema Templates Library, Internal Linking Suggestions, Broken Link Checker, Multiple Focus Keywords, Cornerstone Content, Bulk SEO Editor, Image SEO Checker, Content Pillars, Search Console Integration.
+Meta tags (title, description, OpenGraph, Twitter Cards), XML Sitemap, robots.txt management, 301/302 Redirects Manager, Full JSON-LD (Article, FAQ, Recipe, Product, How-to, Review, Event, Organization, BreadcrumbList), Real-time Content Analyzer, Schema Templates Library, Internal Linking Suggestions, Broken Link Checker, Multiple Focus Keywords, Cornerstone Content, Bulk SEO Editor, Image SEO Checker, Content Pillars, Search Console Integration (BYOK — user provides Google OAuth).
 
 ### 4.4 Performance Suite (12)
 Page Caching, Browser Caching Headers, CSS/JS Minification, CSS/JS Combine, Critical CSS Generation, **Image Optimization (WebP/AVIF)**, Lazy Loading, Database Cleanup, Cache Preloading, CDN Integration, Defer/Async JS, Heartbeat Control.
@@ -154,6 +154,15 @@ In Year 1, the **only** revenue stream is Premium Themes. This is intentional:
 ---
 
 ## 6. Timeline (26 weeks total — 24 weeks to v1.0 launch + 2 weeks stabilization)
+
+> **Scope realism note:** This timeline is aggressive for a solo developer. Phase 1 in particular packs ~18 epics into 6 weeks, and Phase 4 layers Automation Engine, AI integration, premium themes, and onboarding into another 6. The plan is the **target**, not a contract — if velocity falls short, the priority order is:
+>
+> 1. **Never compromise:** Hooks system, plugin loader, theme system, default theme, content types, SEO basics, security basics, accessibility, RTL, MIT licensing.
+> 2. **Slip if needed:** Premium themes (can ship post-v1.0), Plugin marketplace UI (can launch read-only later), AI Multi-Provider's exotic models (start with 2 providers and grow).
+> 3. **Defer if needed:** Advanced page builder blocks, full automation template library (ship 3 templates instead of 7), advanced analytics (real-time visitor count can be polled).
+>
+> The 24-week target is for **launchable v1.0** (everything users need to switch to DeraBlog), not for "every feature in this document". A delivered, bug-light v1.0 in 30 weeks beats a buggy v1.0 in 24.
+
 
 ### Phase 1 (Weeks 1–6): Core Foundation
 - Single Laravel repo + Docker Compose for services
