@@ -70,7 +70,7 @@ Build a fast, SEO-first, **truly complete** open-source content management syste
 
 ---
 
-## 4. Core Feature Areas (~165 features)
+## 4. Core Feature Areas (~200 features across 19 areas)
 
 The Core ships complete. Every capability listed below is in the Core CMS, free, with no extension required.
 
@@ -81,7 +81,7 @@ Posts/Pages CRUD, Categories & Tags, Custom Post Types, Custom Fields (15 types)
 Registration, Email Verification, Password Reset, **2FA (TOTP)**, 6 Default Roles, Custom Roles, Granular Permissions (40+), User Profiles, Strong Password Enforcement, Session Management.
 
 ### 4.3 SEO Suite (15)
-Meta tags, OG, Twitter Cards, XML Sitemap, robots.txt, Full JSON-LD (Article, FAQ, Recipe, Product, How-to, Review, Event, Org, BreadcrumbList), Real-time Content Analyzer, Schema Templates Library, Internal Linking Suggestions, Broken Link Checker, Multiple Focus Keywords, Cornerstone Content, Bulk SEO Editor, Image SEO checker, Content Pillars, Search Console Integration.
+Meta tags (title, description, OpenGraph, Twitter Cards), XML Sitemap, robots.txt management, 301/302 Redirects Manager, Full JSON-LD (Article, FAQ, Recipe, Product, How-to, Review, Event, Organization, BreadcrumbList), Real-time Content Analyzer, Schema Templates Library, Internal Linking Suggestions, Broken Link Checker, Multiple Focus Keywords, Cornerstone Content, Bulk SEO Editor, Image SEO Checker, Content Pillars, Search Console Integration.
 
 ### 4.4 Performance Suite (12)
 Page Caching, Browser Caching Headers, CSS/JS Minification, CSS/JS Combine, Critical CSS Generation, **Image Optimization (WebP/AVIF)**, Lazy Loading, Database Cleanup, Cache Preloading, CDN Integration, Defer/Async JS, Heartbeat Control.
@@ -120,7 +120,7 @@ Subscriber-only Content, Member-only Categories, Free Membership Tiers, **Drip C
 **Visual Node Editor (Drawflow)**, Triggers (Post events, Comment, Subscriber, Form, User, Schedule, Webhook, Manual), Actions (Email, Newsletter, Social Post, Tag, Status Update, Notification, Webhook, AI Action, Chat platform notifications), If/Else Conditions, Wait/Delay, Loop, Filter, Pre-made Templates, Test Run Mode.
 
 ### 4.16 AI Features (BYOK) (12)
-**Multi-Provider Support: OpenAI + Deepseek + Gemini + OpenRouter**, AI Content Writer, AI SEO Suggestions, AI Translation, AI Summarizer, AI Image Generation, AI Alt Text Generator, AI Tags Auto-suggest, AI Content Repurposing, AI Comment Moderation, AI Internal Linking, AI Schema Generator, AI Outline Generator.
+Multi-provider support (**OpenAI**, **Deepseek**, **Gemini**, **OpenRouter**) powers 12 AI capabilities: AI Content Writer, AI SEO Suggestions, AI Translation, AI Summarizer, AI Image Generation, AI Alt Text Generator, AI Tags Auto-suggest, AI Content Repurposing, AI Comment Moderation, AI Internal Linking, AI Schema Generator, AI Outline Generator.
 
 ### 4.17 Themes Infrastructure (8)
 Default Theme (gorgeous), Theme Installer, Theme Settings UI, Dark Mode, RTL Support, Theme Hierarchy, Slot System, Live Customizer.
@@ -153,7 +153,7 @@ In Year 1, the **only** revenue stream is Premium Themes. This is intentional:
 
 ---
 
-## 6. Timeline (24 weeks)
+## 6. Timeline (26 weeks total — 24 weeks to v1.0 launch + 2 weeks stabilization)
 
 ### Phase 1 (Weeks 1–6): Core Foundation
 - Single Laravel repo + Docker Compose for services

@@ -161,7 +161,7 @@ The `DeraBlog/` namespace is the **Core SDK**. It's intentionally separate from 
 
 ### Concept
 
-Modeled after WordPress's `do_action`/`apply_filters`. Two primitives:
+Two primitives form the foundation of DeraBlog's extensibility model:
 
 - **Action:** "Run this code when X happens." (Side-effect)
 - **Filter:** "Modify this value before it's used." (Pure transformation)
@@ -325,7 +325,7 @@ When rendering a Post page, Laravel looks for templates in this order:
 
 ## 6. Page Builder
 
-A drag-drop visual builder modeled after Elementor, built with Livewire + Alpine.
+A drag-drop visual builder for laying out posts and pages, built with Livewire + Alpine.
 
 ### Architecture
 
@@ -733,7 +733,7 @@ redirects
 6. Build canonical + hreflang.
 7. Render via Blade `@stack('seo')` directive.
 
-### Yoast-like Analyzer (Core, Full Features)
+### Real-Time Content Analyzer (Core, Full Features)
 
 Checks:
 - Multiple focus keywords in title, slug, first paragraph, headings, meta description.

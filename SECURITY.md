@@ -11,7 +11,7 @@ We take the security of DeraBlog seriously. This document explains our policy fo
 | `0.x` (pre-alpha) | Active development   | ⚠️ Best-effort. **Not for production use.** |
 | `1.x`      | Not yet released     | Will receive security updates for 12 months after the next minor release. |
 
-DeraBlog is currently in **pre-alpha**. Do not run it on a production site that handles real user data. The first stable release (`v1.0.0`) is planned at the end of the 24-week MVP timeline (see `PLAN.md`).
+DeraBlog is currently in **pre-alpha**. Do not run it on a production site that handles real user data. The first stable release (`v1.0.0`) is planned at the end of the 26-week development cycle: v1.0 launches at Week 24 (Phase 4 complete), with v1.0.0 stable tagged after the Week 25–26 stabilization phase. See `PLAN.md` for details.
 
 ---
 

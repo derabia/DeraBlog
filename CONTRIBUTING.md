@@ -62,18 +62,18 @@ During pre-alpha, breaking changes are expected. Pull requests are welcome but p
 
 ### 4. Building Themes
 
-Themes live in `themes/{slug}/`. See [docs/theme-development.md](docs/theme-development.md) for the full guide.
+Themes live in `themes/{slug}/`. The full theme development guide will be published with v1.0 at [docs.derablog.com](https://docs.derablog.com). For now, see `ARCHITECTURE.md` Section 5.
 
-Quick start:
+Quick start (once the CLI is implemented):
 ```bash
 php artisan dera:theme:make my-theme
 ```
 
 ### 5. Building Plugins
 
-Plugins live in `plugins/{slug}/`. See [docs/plugin-development.md](docs/plugin-development.md) for the full guide.
+Plugins live in `plugins/{slug}/`. The full plugin development guide will be published with v1.0 at [docs.derablog.com](https://docs.derablog.com). For now, see `ARCHITECTURE.md` Section 7.
 
-Quick start:
+Quick start (once the CLI is implemented):
 ```bash
 php artisan dera:plugin:make my-plugin
 ```

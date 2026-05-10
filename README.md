@@ -223,10 +223,11 @@ Premium themes and add-ons sold separately at [derablog.com](https://derablog.co
 
 ## Roadmap
 
-- **Weeks 1–6:** Core foundation (content management, authentication, themes, plugins, baseline SEO and caching)
-- **Weeks 7–12:** Full SEO suite, performance suite, security suite, forms, backup, newsletter, analytics, multilingual → 🚀 **Soft Launch**
-- **Weeks 13–18:** Page builder, theme builder, membership, editorial calendar
-- **Weeks 19–24:** Automation engine, AI features → 🚀 **Full Launch v1.0**
+- **Weeks 1–6 (Phase 1):** Core foundation — content management, authentication, themes, plugins, baseline SEO and caching
+- **Weeks 7–12 (Phase 2):** Full SEO suite, performance suite, security suite, forms, backup, newsletter, analytics, multilingual → 🚀 **Soft Launch**
+- **Weeks 13–18 (Phase 3):** Page builder, theme builder, membership, editorial calendar
+- **Weeks 19–24 (Phase 4):** Automation engine, AI features → 🚀 **Full Launch v1.0**
+- **Weeks 25–26 (Phase 5):** Stabilization — bug fixes, documentation polish → **v1.0.0 stable tag**
 
 See [PLAN.md](PLAN.md) for the detailed roadmap.
 
