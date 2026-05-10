@@ -733,12 +733,18 @@ A separate Laravel application running on `license.derablog.com` for Premium The
 
 ```sql
 licenses
-├── id, key (DRBL-XXXX-XXXX-XXXX format)
+├── id, key_hash (SHA-256 of plaintext key + per-key salt; plaintext NEVER stored)
 ├── product_id (FK → products)
 ├── customer_email
 ├── lemon_squeezy_order_id
 ├── activated_at, expires_at, deactivated_at
 ├── max_domains (default: 1)
+└── timestamps
+
+webhook_replay_log  (idempotency / replay protection)
+├── id, source ('lemon_squeezy' | 'stripe')
+├── event_id (unique)
+├── received_at
 └── timestamps
 
 license_activations
@@ -756,17 +762,23 @@ products
 ### Validation Flow
 
 1. DeraBlog → POST `/api/v1/validate` `{ license_key, domain, product_slug, version }`
-2. License server checks: key valid? not expired? domain matches?
-3. Returns: `{ valid, expires_at, latest_version, update_url }`
-4. DeraBlog caches result for 24 hours.
+2. License server hashes the incoming key and looks up by `key_hash`; checks: not expired? domain matches?
+3. Returns: `{ valid, expires_at, latest_version, update_url, signature }` — `signature` is Ed25519 over the response body, verified client-side via `ArtifactTrust::verifyMarketplaceManifest()` (closes F-13 update channel + tampering at `license.derablog.com` CDN).
+4. DeraBlog caches result for 1 hour (reduced from 24h to limit revocation lag); offline grace period of 7 days for clock-skew tolerance.
 
-### No Encryption
+### Webhook intake
+
+Lemon Squeezy webhooks are HMAC-verified by `ArtifactTrust::verifyWebhookPayload()` and idempotency-keyed via the `webhook_replay_log` table (5-minute replay window enforced).
+
+### No source-code encryption
 
 Premium themes ship as plain code (Blade + PHP + assets). Protection via:
-- License key validation
-- Domain locking
-- Update gating
-- Strong EULA
+- Minisign-signed packages (verified by `ArtifactTrust` before activation — closes F-13)
+- License key validation against hashed server-side store (closes F-7)
+- Domain locking enforced at activation
+- Update gating — no updates without active license
+- Signed validation responses (closes MITM at the CDN edge)
+- Strong EULA + active legal enforcement on confirmed violations
 
 ---
 
@@ -926,19 +938,99 @@ Returns score + actionable suggestions, displayed as a Livewire widget in the po
 
 ## 17. Security
 
-- **CSRF:** Laravel default + Sanctum for API.
-- **XSS:** Blade auto-escape + HTMLPurifier wrapper for TipTap output.
-- **SQL Injection:** Eloquent ORM, no raw queries.
-- **Rate Limiting:** Laravel RateLimiter on auth, comments, search, AI calls, license validation.
-- **CAPTCHA:** Cloudflare Turnstile (free) or Honeypot built-in.
-- **HTTPS:** Enforced via Nginx (Let's Encrypt).
-- **Headers:** CSP, HSTS, X-Frame-Options, X-Content-Type-Options.
-- **Plugin Security:** Plugins request permissions in manifest; admin reviews on install.
-- **Livewire Security:** All actions go through CSRF + signed payloads.
-- **AI Key Security:** API keys encrypted at rest with Laravel encryption (`Crypt::encryptString`).
-- **WAF-lite:** Built-in firewall rules for common attack patterns (SQLi, XSS, path traversal).
-- **Brute Force Protection:** Login attempt limiting + IP blocking.
-- **2FA:** TOTP-based (Google Authenticator compatible), no SMS.
+The detailed security architecture, decision matrix, module specs, residual-risk register, and phase quality gates live in [`SECURITY-DESIGN.md`](SECURITY-DESIGN.md). This section is a summary.
+
+### 17.1 The 5 cross-cutting security modules
+
+All security-critical logic is concentrated in five modules under `app/Security/`. PHPStan rules forbid bypassing them.
+
+| Module | Path | Closes audit findings | Phase delivered |
+|---|---|---|---|
+| `EgressGuard` | `app/Security/EgressGuard/` | F-1, F-2, F-13 (download path) | Phase 1 W2 |
+| `AuthEdge` | `app/Security/AuthEdge/` | F-9, F-10, F-11, F-12, F-14 | Phase 1 W3–4 |
+| `ContentSanitizer` | `app/Security/ContentSanitizer/` | F-5, F-8 | Phase 1 W3, W5; Phase 3 W13 |
+| `ArtifactTrust` | `app/Security/ArtifactTrust/` | F-3, F-6, F-7, F-13 (verification path) | Stub Phase 1 W6, full Phase 4 W22 |
+| `AIGateway` | `app/Security/AIGateway/` | F-4 | Phase 4 W19 |
+
+### 17.2 Standard application controls
+
+- **CSRF:** Laravel default for web; Sanctum for API token paths.
+- **XSS:** Blade auto-escape + `ContentSanitizer` (HTMLPurifier-based, per-context profiles).
+- **SQL Injection:** Eloquent ORM only; no raw queries; PHPStan rule rejects `DB::raw()` outside `app/Security/AuditedQueries/`.
+- **Rate Limiting:** `AuthEdge::enforceRateLimit()` with policies in `config/dera-rate-limits.php`.
+- **CAPTCHA:** Cloudflare Turnstile on every public form; Honeypot as belt-and-braces.
+- **HTTPS:** Enforced at Nginx (Let's Encrypt / Caddy).
+- **Headers:** Strict-CSP (per-request nonce, see 17.3), HSTS (`max-age=63072000; includeSubDomains; preload`), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: geolocation=(), microphone=()`.
+- **Plugin Security:** Permissions in manifest are advisory; trust signal is the Minisign signature (see `ArtifactTrust`). Verified plugins auto-trusted; Community plugins require per-install admin consent and never auto-update.
+- **Livewire Security:** All actions go through CSRF + signed payloads; properties not exposed unless explicitly public.
+- **AI Key Security:** API keys encrypted at rest with `Crypt::encryptString`; never logged; never returned over the API.
+- **WAF-lite:** Built-in firewall rules (SQLi/XSS/path-traversal pattern detection) on top of Cloudflare's default ruleset.
+- **Brute Force Protection:** Login attempt limiting (5/min/IP, 10/h/email); IP blocking on repeated failures.
+- **2FA:** TOTP-only (no SMS); backup codes shown once, hashed, single-use; password reset does NOT bypass 2FA.
+
+### 17.3 Content Security Policy
+
+Header set by `App\Http\Middleware\ContentSecurityPolicy`:
+
+```
+Content-Security-Policy:
+  default-src 'self';
+  script-src 'self' 'nonce-{request-nonce}' 'strict-dynamic';
+  style-src 'self' 'nonce-{request-nonce}';
+  img-src 'self' data: https://{media-origin};
+  font-src 'self';
+  connect-src 'self' wss://{reverb-host};
+  media-src 'self';
+  object-src 'none';
+  base-uri 'self';
+  form-action 'self';
+  frame-ancestors 'none';
+  upgrade-insecure-requests;
+  report-uri /security/csp-report
+```
+
+Per-request nonces are generated in `RequestNonceMiddleware` (32-byte `random_bytes` → base64). Cached pages contain a `{{NONCE_PLACEHOLDER}}` token substituted at the response middleware after cache hit.
+
+### 17.4 Egress allow-list
+
+All outbound HTTP from PHP-FPM goes through `EgressGuard` (Module A). Profiles defined in `config/dera-egress.php` for: `marketplace`, `license`, `ai`, `webhook`, `import`, `link_check`, `backup`. Always-denied: RFC1918, 169.254/16, 127/8, IPv6 link-local, `fc00::/7`, `fe80::/10`. DNS rebinding mitigated via `CURLOPT_RESOLVE`.
+
+### 17.5 Plugin / theme trust model
+
+- **Verified tier** — Minisign-signed by Derabia.com root key (YubiKey-backed). Auto-update permitted. Trust badge in admin UI.
+- **Community tier** — Unsigned. Each install requires admin to confirm "I trust this source". No auto-update; admin must manually update each version. Trust badge clearly states `Community (unverified)`.
+
+`plugin.json` schema:
+```json
+{
+  "name": "...",
+  "version": "...",
+  "service_provider": "...",
+  "publisher_identity": "derabia | community-author",
+  "trust_tier": "verified | community",
+  "signature": {
+    "algorithm": "ed25519",
+    "public_key_id": "derabia-2026-04",
+    "value": "RWRzZXh0..."
+  }
+}
+```
+
+### 17.6 AI cost ceiling
+
+`AIGateway` enforces a hard ceiling per install. Default $50/month, env-overridable up to $500 (`AI_HARD_CEILING_USD`), NOT admin-overridable. Soft warning at 50% of cap; AI features disabled on cap reached. Per-input token cap (4K default), per-trigger debounce (60s), per-IP rate limit applied before any provider call.
+
+### 17.7 Real-time channel authorization
+
+`routes/channels.php` is default-deny. Each channel has an explicit `Broadcast::channel()` callback delegating to `AuthEdge::authorizeChannel()`. CI test enumerates channels and asserts each has a callback.
+
+### 17.8 Cache-key composition
+
+`AuthEdge::composeCacheKey()` returns:
+```
+v3 | host | path | locale | theme_version | auth_state | member_tier | preferred_language
+```
+Cache is skipped on: `Cookie` header in request, `Authorization` header in request, `Set-Cookie` in response, status ≠ 200, route marked `dera.uncachable`.
 
 ---
 

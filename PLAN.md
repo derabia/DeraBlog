@@ -5,6 +5,7 @@
 > **License:** Hybrid — MIT (Core CMS) + Commercial EULA (Premium Themes only)
 > **Status:** Pre-development planning phase
 > **Last updated:** 2026-05-10
+> **Companion docs:** [`ARCHITECTURE.md`](ARCHITECTURE.md) (technical), [`BUSINESS.md`](BUSINESS.md) (commercial), [`SECURITY-DESIGN.md`](SECURITY-DESIGN.md) (security architecture, modules, gates)
 
 ---
 
@@ -45,6 +46,12 @@ Build a fast, SEO-first, **truly complete** open-source content management syste
 | Containerization | Docker Compose (production), hybrid (dev) | One-command install for customers |
 | Repo Strategy | Single public Laravel repo (Core) + private repos for premium themes | Clear open / commercial separation |
 | Timeline | **Option B — Soft Launch at Week 12, Full Launch at Week 24** | Get user feedback early, polish before full launch |
+| **Security architecture** | **5 cross-cutting modules under `app/Security/`: `EgressGuard`, `AIGateway`, `ArtifactTrust`, `ContentSanitizer`, `AuthEdge`** | Each module is a single chokepoint that closes a cluster of audit findings; details in `SECURITY-DESIGN.md` |
+| **Plugin / theme trust** | **Two-tier: Verified (Minisign-signed by Derabia.com) and Community (unsigned, requires per-install admin consent, no auto-update)** | Forced binary choice would either kill community or kill brand |
+| **AI cost ceiling** | **Hard $50/mo default per install, env-overridable up to $500, NOT admin-overridable** | Reputational ATO risk on "DeraBlog drained my key" outweighs admin convenience |
+| **Compliance scope** | **GDPR-ready by design + Egypt 151/2020 (operator residency); PDPL-SA acknowledged** | GDPR is the strictest declared scope; satisfying it satisfies the rest |
+| **CSP** | **Strict-CSP with per-request nonce, `strict-dynamic`, no `unsafe-inline`** | Only XSS posture that survives Page Builder + plugins + themes |
+| **Telemetry** | **OFF by default; opt-in during onboarding; aggregate metrics only** | Privacy-by-default is the brand promise |
 
 ---
 
@@ -165,56 +172,107 @@ In Year 1, the **only** revenue stream is Premium Themes. This is intentional:
 
 
 ### Phase 1 (Weeks 1–6): Core Foundation
+**Feature deliverables:**
 - Single Laravel repo + Docker Compose for services
 - Laravel 11 + Filament 3 + Livewire 3 + Tailwind installed
-- DB schema (all tables)
+- DB schema (all tables, including security-relevant: `licenses_hash`, `ai_usage_log`, `webhook_replay_log`, `automation_executions`)
 - Authentication (Sanctum + Laravel built-in)
 - Roles & Permissions (Spatie)
 - Posts, Categories, Tags CRUD with TipTap
 - Media library (Spatie MediaLibrary)
 - Default theme (Blade-based, RTL/dark mode)
-- Hooks system + Plugin loader
+- Hooks system + Plugin loader (with signature-verification stub)
 - i18n setup (English + Arabic)
 - Basic SEO (meta, sitemap, redirects)
 - Basic page caching
-- Content Importer (initial source format)
-- **Milestone: Internal Alpha (used on Derabia.com)**
+- Content Importer (initial source format) — fetches via `EgressGuard`
+
+**Security deliverables (modules + gates):**
+- Day-1 Setup Checklist executed (branch protection, gitleaks, dependabot, PGP key, signed commits, license-server scaffold)
+- `EgressGuard` module live (Module A) — closes F-1, F-2, F-13 (download path)
+- `AuthEdge` module live (Module E) — closes F-9, F-10 (default-deny stub), F-11, F-12, F-14
+- `ContentSanitizer` baseline live (Module D) — closes F-5 (baseline), F-8
+- `ArtifactTrust` interfaces + Minisign public key bundled (Module C stub) — closes F-3 (admin consent flow)
+- CSP middleware with per-request nonce
+- Phase-1 exit security tests (PHPStan rules, SSRF tests, XSS payload corpus, SVG sanitizer test, channels-callback test) all green in CI
+
+**Milestone:** Internal Alpha (used on Derabia.com)
 
 ### Phase 2 (Weeks 7–12): Complete the Toolkit
-- Full SEO Suite (analyzer, schema templates, internal linking, broken links)
+**Feature deliverables:**
+- Full SEO Suite (analyzer, schema templates, internal linking, broken links — link checker uses `EgressGuard` profile=`link_check`)
 - Performance Suite (minify, critical CSS, image optimization)
 - Security Suite (WAF-lite, malware scanner, activity log)
-- Forms Builder (drag-drop)
-- Backup System (local + S3 BYOK)
-- Newsletter System (SMTP-based)
+- Forms Builder (drag-drop) — submissions piped through `ContentSanitizer`
+- Backup System (local + S3 BYOK via `EgressGuard` profile=`backup`)
+- Newsletter System (SMTP-based) — subscribe gated by Turnstile + per-IP rate limit
 - Comments System (threading, reactions)
 - Privacy-First Analytics Dashboard
 - Multilingual Suite (full features)
-- **🚀 Milestone: Soft Launch** (Indie Hackers, Reddit, Twitter)
+
+**Security deliverables (modules + gates):**
+- Per-channel `Broadcast::channel()` callbacks for every Reverb channel — closes F-10 fully
+- Newsletter subscription rate-limit + Turnstile + signed double-opt-in token — closes F-14
+- `ai_prompt_audit` PII redaction filter
+- All five rate-limit policies wired to `AuthEdge::enforceRateLimit()`
+- CSP report endpoint (`POST /security/csp-report`) accumulating violations
+- Phase-2 exit security tests: rate-limit corpus, Reverb channel-spoofing test, broken-link SSRF test, comment XSS fuzzing — all green
+
+**🚀 Milestone:** Soft Launch (Indie Hackers, Reddit, Twitter)
 
 ### Phase 3 (Weeks 13–18): Differentiate
+**Feature deliverables:**
 - Page Builder (drag-drop visual builder)
 - Theme Builder (custom header/footer)
-- Membership basic (Stripe BYOK)
-- Editorial Calendar (FullCalendar)
+- Membership basic (Stripe BYOK) — webhook signature verification via `ArtifactTrust`
+- Editorial Calendar (FullCalendar) — iCal feed via signed URL token
 - Custom Post Types UI polish
-- **Milestone: Beta v0.9**
+- DSAR endpoints (`/api/v1/dsar/export`, `/api/v1/dsar/delete`) for GDPR compliance
+
+**Security deliverables (modules + gates):**
+- `ContentSanitizer::sanitizePageBuilderBlock()` per-block-type profiles — closes F-5 fully
+- HTML block restricted to admin role only
+- Stripe webhook signature verification — closes F-6 partial (Stripe path)
+- DSAR round-trip test (export + delete) green
+- Phase-3 exit security tests: ≥30 XSS payloads fuzzed against every Page Builder block, all blocked
+
+**Milestone:** Beta v0.9
 
 ### Phase 4 (Weeks 19–24): The Headline Features
-- **Automation Engine (Drawflow)** — full visual builder
-- **AI Features (BYOK)** — 4 providers integration
-- Plugin marketplace UI (read-only)
+**Feature deliverables:**
+- **Automation Engine (Drawflow)** — full visual builder; webhook action uses `EgressGuard` profile=`webhook`
+- **AI Features (BYOK)** — 4 providers integration; all calls go through `AIGateway`
+- Plugin marketplace UI (read-only) — manifest signed, verified by `ArtifactTrust`
+- License Server live (`license.derablog.com`) with hashed keys + signed responses
 - Performance polish
 - Documentation finalization
-- 1–2 Premium Themes
+- 1–2 Premium Themes (signed with Minisign)
 - Onboarding flow / setup wizard
-- **🚀 Milestone: Full Launch v1.0** (Product Hunt, Hacker News, YouTube)
+
+**Security deliverables (modules + gates):**
+- `AIGateway` shipped (Module B) — closes F-4 (per-input cap, per-trigger debounce, hard cost ceiling)
+- `ArtifactTrust` full verification path (Module C) — closes F-3 fully (signed plugin/theme verification mandatory before activation), F-13 (signed theme updates)
+- License-server schema with `key_hash` only (no plaintext) — closes F-7
+- Lemon Squeezy webhook HMAC verification — closes F-6
+- AI prompt-injection corpus (≥30 payloads) tested against every AI capability
+- Marketplace manifest tampering test green
+- Phase-4 exit security tests: cost-ceiling test, signed-plugin verification test, webhook forgery test, license-key-hashing migration test — all green
+
+**🚀 Milestone:** Full Launch v1.0 (Product Hunt, Hacker News, YouTube)
 
 ### Phase 5 (Weeks 25–26): Stabilize
+**Feature deliverables:**
 - Bug fixes from launch feedback
 - Documentation polish
 - Premium themes finalization
 - v1.0.0 stable tag
+
+**Security deliverables (gates):**
+- Re-run audit prompt against implemented system; record delta
+- In-house pen-test on top-3 surfaces (License Server, AIGateway, Plugin signature verification)
+- All P0/P1 bugs from launch closed
+- Public security advisory page live; synthetic disclosure round-trip via PGP works
+- Phase-5 exit: zero open P0/P1 security issues; v1.0.0 Docker images signed and published
 
 ---
 

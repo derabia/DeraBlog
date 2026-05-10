@@ -178,6 +178,10 @@ DeraBlog uses a **dual-license model**:
 | **Competition from established CMS platforms** | Position for greenfield projects; built-in importer reduces migration friction; target underserved niches (RTL languages, agencies, privacy-conscious users) |
 | **Solo dev burnout / scope creep** | Strict 24-week MVP; firm Phase boundaries; resist scope creep; document everything; published priority list (see `PLAN.md` Section 6) for what slips first if velocity falls short |
 | **Aggressive Phase 1 / Phase 4 scope** | ~18 epics packed into Phase 1 (Weeks 1–6); 8 heavy epics in Phase 4 including AI, automation, premium themes; published "scope realism" note in `PLAN.md` Section 6 names the slip-priority order so the v1.0 target stays achievable even if some non-core features defer to v1.1 |
+| **AI key drained on a customer site (BYOK reputational ATO)** | Hard cost ceiling enforced by `AIGateway` (default $50/mo, env-overridable to $500, NOT admin-overridable); per-input token cap; per-trigger debounce; soft warning at 50%; full details in `SECURITY-DESIGN.md` |
+| **Trojaned plugin distributed via marketplace** | Two-tier trust (Verified = Minisign-signed + manually reviewed; Community = unsigned + per-install consent + no auto-update); root signing key on YubiKey; multi-key-ID rotation supported; full details in `SECURITY-DESIGN.md` |
+| **License-key DB breach** | Server-side keys stored as hash only; plaintext shown once at issuance; signed validation responses; 1-hour client cache (reduced from 24h) for revocation responsiveness |
+| **Solo founder = single point of incident response** | Documented SECURITY.md disclosure SLA (ack ≤72h, fix Critical ≤7d / High ≤30d / Med ≤90d); GitHub private vulnerability reporting + `security@derablog.com` PGP-signed channel; first-customer pen-test trigger documented |
 | **Stack lock-in to Laravel** | Laravel is mature and growing; the TALL Stack is officially supported and well-resourced |
 | **AI provider changes pricing/API** | Four-provider strategy (OpenAI, Deepseek, Gemini, OpenRouter) hedges against any single provider; BYOK means we don't pay for usage |
 | **License key system gets cracked** | Acceptable risk — most paying customers are honest; legal action against confirmed mass violators; key revocation supported |
@@ -227,3 +231,4 @@ DeraBlog uses a **dual-license model**:
 8. **Documentation is product.** Plugin and theme developer docs are first-class deliverables.
 9. **No dark patterns.** No artificial limits, no upsell harassment, no telemetry without consent.
 10. **Open communication.** Public roadmap, public issues, public discussions.
+11. **Security in the design, not bolted on.** Five cross-cutting security modules (`EgressGuard`, `AIGateway`, `ArtifactTrust`, `ContentSanitizer`, `AuthEdge`) deliver the controls that close the audit findings — see `SECURITY-DESIGN.md`.

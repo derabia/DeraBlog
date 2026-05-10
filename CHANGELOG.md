@@ -38,4 +38,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Search Console integration is BYOK (user provides Google OAuth) — consistent with the no-vendor-lock-in philosophy.
 - Scope realism note published in `PLAN.md` Section 6: slip-priority order if velocity falls short.
 
+### Security architecture established (post-audit re-plan)
+- Created `SECURITY-DESIGN.md` as the authoritative security architecture document.
+- Five cross-cutting security modules introduced under `app/Security/`:
+  - `EgressGuard` — single chokepoint for all outbound HTTP; closes F-1 (Automation webhook SSRF), F-2 (Importer + Broken-link checker SSRF), F-13 (theme update download path).
+  - `AuthEdge` — Sanctum lifecycle, Reverb channel auth, cache-key composition, 2FA flow, rate limits; closes F-9, F-10, F-11, F-12, F-14.
+  - `ContentSanitizer` — HTMLPurifier profiles + SVG sanitizer + image re-encoder; closes F-5, F-8.
+  - `ArtifactTrust` — Minisign signature verification + HMAC webhook verifier + license-key hashing; closes F-3, F-6, F-7, F-13 (verification path).
+  - `AIGateway` — per-input token cap, per-trigger debounce, hard cost ceiling; closes F-4.
+- Plugin/theme distribution: two-tier trust model (Verified = Minisign-signed + reviewed; Community = unsigned + per-install consent + no auto-update).
+- AI cost ceiling: hard $50/mo default per install, env-overridable up to $500, NOT admin-overridable.
+- Compliance scope explicitly: GDPR + Egypt 151/2020.
+- CSP: Strict-CSP with per-request nonce, `strict-dynamic`, no `unsafe-inline`.
+- Telemetry: OFF by default; opt-in only; aggregate metrics; no IPs / domains.
+- Rate-limit policy concretized in `config/dera-rate-limits.php` with hardcoded defaults per surface.
+- Egress allow-list defined in `config/dera-egress.php` with seven profiles (`marketplace`, `license`, `ai`, `webhook`, `import`, `link_check`, `backup`).
+- Phase quality gates added to `PLAN.md` Section 6 — every phase exits on binary security checks citing F-N IDs.
+
 [Unreleased]: https://github.com/derabia/DeraBlog/commits/main

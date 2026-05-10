@@ -23,7 +23,7 @@ DeraBlog is currently in **pre-alpha**. Do not run it on a production site that 
 
 Send a detailed report to **`security@derablog.com`**.
 
-If you wish to encrypt your report, request our PGP public key in the first email and we will reply with the current key fingerprint. (PGP key publication is planned alongside the v0.1 release.)
+The PGP public key for `security@derablog.com` is generated on Day 1 of development (4096-bit RSA, 2-year expiration). The fingerprint is published here once Phase 1 begins; the key is also uploaded to `keys.openpgp.org`. Until then, you may use GitHub private vulnerability reporting (below) for any sensitive content.
 
 ### Alternative channel — GitHub Security Advisory
 
@@ -82,6 +82,12 @@ We follow a **coordinated disclosure** model: we will not disclose your report p
 ## Premium Themes
 
 Vulnerabilities in **official premium themes** (sold under the Commercial EULA — see `LICENSE-COMMERCIAL.md`) follow the same disclosure process as the Core CMS. Customers with an active license also have access to the priority support channel via the customer portal at [derablog.com](https://derablog.com).
+
+---
+
+## Security Architecture
+
+The technical security design — including the five cross-cutting security modules (`EgressGuard`, `AIGateway`, `ArtifactTrust`, `ContentSanitizer`, `AuthEdge`), the resolved security decisions, the trade-off ledger, and the residual-risk register — is documented in [`SECURITY-DESIGN.md`](SECURITY-DESIGN.md). Researchers are encouraged to review it before submitting reports so that findings can be mapped to the existing model and not re-litigated.
 
 ---
 
