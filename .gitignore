@@ -1,0 +1,53 @@
+# Laravel
+/vendor/
+/node_modules/
+/public/build/
+/public/hot
+/public/storage
+/storage/*.key
+/storage/app/private
+/storage/framework/cache/data
+/storage/framework/sessions
+/storage/framework/testing
+/storage/framework/views
+/storage/logs
+/storage/pail
+.env
+.env.backup
+.env.production
+.env.*.local
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+auth.json
+npm-debug.log
+yarn-error.log
+
+# Editors
+/.fleet
+/.idea
+/.vscode
+/.zed
+
+# DeraBlog (project-specific)
+/themes/*/node_modules/
+/themes/*/dist/
+/plugins/*/vendor/
+/plugins/*/node_modules/
+*.local.php
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Claude Code (keep shared config, ignore local overrides)
+/.claude/settings.local.json
+/.claude/.cache/
+
+# Backups & temporary
+*.bak
+*.backup
+*.swp
+*.tmp
+*~
