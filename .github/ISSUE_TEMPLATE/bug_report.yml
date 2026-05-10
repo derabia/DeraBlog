@@ -1,0 +1,84 @@
+name: Bug Report
+description: Report a problem to help us improve.
+title: "[Bug]: "
+labels: ["type:bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill out the sections below as completely as you can.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear and concise description of the bug.
+      placeholder: When I do X, Y happens instead of Z.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Step-by-step instructions to reproduce the bug.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What actually happened? Include screenshots, logs, or stack traces if relevant.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: DeraBlog version
+      description: The version or commit SHA you are running.
+      placeholder: v0.1.0 or commit SHA
+    validations:
+      required: true
+  - type: dropdown
+    id: php-version
+    attributes:
+      label: PHP version
+      options:
+        - "8.2"
+        - "8.3"
+        - "8.4"
+        - Other (please specify in additional context)
+    validations:
+      required: true
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: Installation method
+      options:
+        - Docker Compose
+        - Manual (composer install)
+        - Shared hosting
+        - Other (please specify in additional context)
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, browser, database version, etc.
+      placeholder: Ubuntu 22.04, Chrome 130, MySQL 8.0.35
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Anything else that might help us debug the issue.

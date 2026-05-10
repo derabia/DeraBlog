@@ -1,0 +1,59 @@
+name: Feature Request
+description: Suggest a new feature or enhancement.
+title: "[Feature]: "
+labels: ["type:feature", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! Before submitting, please check the [PLAN.md](https://github.com/derabia/DeraBlog/blob/main/PLAN.md) — your idea may already be on the roadmap.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What user need or pain point does this address?
+      placeholder: As a [type of user], I want to [goal] so that [reason].
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe what you have in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What other approaches did you consider?
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      description: Where should this feature live?
+      options:
+        - Core CMS
+        - Core feature behind a toggle
+        - Free plugin
+        - Premium plugin / theme
+        - Documentation
+        - Not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: willing
+    attributes:
+      label: Are you willing to implement this?
+      options:
+        - "Yes, I plan to submit a PR"
+        - "Yes, with guidance"
+        - "No, but I can help test"
+        - "No, just suggesting"
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Mockups, examples from other tools, links, etc.

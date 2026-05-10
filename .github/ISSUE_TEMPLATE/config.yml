@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or Discussion
+    url: https://github.com/derabia/DeraBlog/discussions
+    about: For general questions, ideas, or open-ended discussions, please use Discussions.
+  - name: Security Vulnerability
+    url: https://github.com/derabia/DeraBlog/security/advisories/new
+    about: For security issues, please use private vulnerability reporting (do not open a public issue).
